@@ -1,0 +1,61 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.cluster import KMeans
+from mlxtend.frequent_patterns import apriori, association_rules
+from sklearn.preprocessing import StandardScaler
+
+# Load Dataset
+@st.cache_data
+def load_data():
+    df = pd.read_csv("uber-eats-deliveries.csv")  # Update with actual dataset path
+    return df
+
+df = load_data()
+
+# Preprocessing
+st.title("Uber Eats Delivery Analysis")
+st.write("### Data Preview")
+st.dataframe(df.head())
+
+# Data Cleaning
+if 'Time_taken(min)' in df.columns:
+    df.dropna(inplace=True)
+    df = df[df['Time_taken(min)'] > 0]  # Remove invalid values
+
+# EDA: Distribution of Delivery Time
+st.write("### Distribution of Delivery Time")
+fig, ax = plt.subplots()
+sns.histplot(df['Time_taken(min)'], bins=30, kde=True, ax=ax)
+st.pyplot(fig)
+
+# Scatter Plot: Impact of Weather & Traffic on Delivery Time
+st.write("### Impact of Weather & Traffic on Delivery Time")
+fig, ax = plt.subplots()
+sns.scatterplot(data=df, x='Weather_conditions', y='Time_taken(min)', hue='Road_traffic_density', ax=ax)
+st.pyplot(fig)
+
+# Clustering Analysis (K-Means)
+st.write("### Clustering Delivery Data")
+scaler = StandardScaler()
+df_scaled = scaler.fit_transform(df[['Time_taken(min)']])
+kmeans = KMeans(n_clusters=3, random_state=42)
+df['Cluster'] = kmeans.fit_predict(df_scaled)
+
+fig, ax = plt.subplots()
+sns.scatterplot(x=df.index, y=df['Time_taken(min)'], hue=df['Cluster'], palette='viridis', ax=ax)
+st.pyplot(fig)
+
+# Association Rule Mining
+st.write("### Association Rule Mining")
+one_hot = pd.get_dummies(df[['Weather_conditions', 'Road_traffic_density', 'Festival']])
+frequent_itemsets = apriori(one_hot, min_support=0.1, use_colnames=True)
+rules = association_rules(frequent_itemsets, metric='lift', min_threshold=1.0)
+st.dataframe(rules[['antecedents', 'consequents', 'support', 'confidence', 'lift']])
+
+# Key Insights
+st.write("### Key Insights")
+st.write("- High traffic & bad weather increase delivery time.")
+st.write("- Clustering helps identify delay patterns.")
+st.write("- Association rules reveal dependencies in delivery conditions.")
