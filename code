@@ -19,33 +19,40 @@ if uploaded_file:
     # Load the dataset
     df = pd.read_csv(uploaded_file)
 
-    # Convert numeric columns
-    df["Delivery_person_Age"] = pd.to_numeric(df["Delivery_person_Age"], errors="coerce")
-    df["Delivery_person_Ratings"] = pd.to_numeric(df["Delivery_person_Ratings"], errors="coerce")
+    # Convert numeric columns safely
+    if "Delivery_person_Age" in df.columns:
+        df["Delivery_person_Age"] = pd.to_numeric(df["Delivery_person_Age"], errors="coerce")
+    if "Delivery_person_Ratings" in df.columns:
+        df["Delivery_person_Ratings"] = pd.to_numeric(df["Delivery_person_Ratings"], errors="coerce")
 
-    # Remove "(min)" from Time_taken(min) and convert to integer
-    df["Time_taken(min)"] = df["Time_taken(min)"].str.extract("(\\d+)").astype(int)
+    # Convert 'Time_taken(min)' safely
+    if "Time_taken(min)" in df.columns:
+        df["Time_taken(min)"] = df["Time_taken(min)"].astype(str).str.extract(r"(\\d+)").astype(float)
+        df = df.dropna(subset=["Time_taken(min)"])
 
-    # Fix Weatherconditions (remove "conditions ")
-    df["Weatherconditions"] = df["Weatherconditions"].str.replace("conditions ", "", regex=True)
+    # Fix 'Weatherconditions'
+    if "Weatherconditions" in df.columns:
+        df["Weatherconditions"] = df["Weatherconditions"].astype(str).str.replace("conditions ", "", regex=True)
 
-    # Convert time columns to datetime format
-    df["Time_Orderd"] = pd.to_datetime(df["Time_Orderd"], errors="coerce")
-    df["Time_Order_picked"] = pd.to_datetime(df["Time_Order_picked"], errors="coerce")
+    # Convert time columns safely
+    for col in ["Time_Orderd", "Time_Order_picked"]:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
 
     st.sidebar.success("✅ Data Loaded Successfully!")
 
+    # Page Navigation
     if page == "Home":
         st.title("🚀 Uber Eats Delivery Analysis App")
         st.write("This interactive dashboard helps analyze Uber Eats delivery patterns, customer satisfaction, and efficiency.")
-    
+
     elif page == "Data Overview":
         st.subheader("🔍 Raw Data Overview")
         if st.checkbox("Show Raw Data"):
             st.write(df.head())
         st.subheader("📌 Summary Statistics")
         st.write(df.describe())
-    
+
     elif page == "Visualizations":
         st.subheader("📊 Delivery Time Distribution")
         fig, ax = plt.subplots()
@@ -58,21 +65,33 @@ if uploaded_file:
         st.pyplot(fig)
 
         st.subheader("🏙 Filter Data by City")
-        selected_city = st.selectbox("Select a city:", df["City"].unique())
-        filtered_df = df[df["City"] == selected_city]
-        st.write(filtered_df.head())
-    
+        if "City" in df.columns:
+            selected_city = st.selectbox("Select a city:", df["City"].dropna().unique())
+            filtered_df = df[df["City"] == selected_city]
+            st.write(filtered_df.head())
+        else:
+            st.warning("City column not found in the dataset.")
+
     elif page == "Clustering Analysis":
         st.subheader("🌀 Clustering Analysis of Delivery Times")
-        features = ["Time_taken(min)", "Delivery_person_Age", "Delivery_person_Ratings"]
-        X = df[features]
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-        kmeans = KMeans(n_clusters=3, random_state=42)
-        # Intentionally breaking the clustering by using incorrect data
-        df["Cluster"] = kmeans.fit_predict(X_scaled[:, [0, 1]])  # Incorrect slicing
         
-        fig, ax = plt.subplots()
-        sns.scatterplot(x="Delivery_person_Age", y="Time_taken(min)", hue=df["Cluster"], palette="viridis", ax=ax)
-        st.pyplot(fig)
-        st.success("✅ Clustering Analysis Completed!")
+        # Clustering features
+        features = ["Time_taken(min)", "Delivery_person_Age", "Delivery_person_Ratings"]
+        available_features = [col for col in features if col in df.columns]
+        
+        if len(available_features) < 2:
+            st.error("Not enough numerical columns for clustering. Check the dataset.")
+        else:
+            # Drop missing values
+            X = df[available_features].dropna()
+            
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X)
+
+            kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+            df.loc[X.index, "Cluster"] = kmeans.fit_predict(X_scaled)
+
+            fig, ax = plt.subplots()
+            sns.scatterplot(x="Delivery_person_Age", y="Time_taken(min)", hue=df["Cluster"], palette="viridis", ax=ax)
+            st.pyplot(fig)
+            st.success("✅ Clustering Analysis Completed!")
