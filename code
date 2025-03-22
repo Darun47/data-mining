@@ -13,7 +13,6 @@ def load_data():
     df = pd.read_csv("uber-eats-deliveries.csv")
     return df
 
-# Preprocess the data
 def preprocess_data(df):
     df.dropna(inplace=True)
     df = pd.get_dummies(df, drop_first=True)
@@ -21,13 +20,11 @@ def preprocess_data(df):
     df[['Time_taken(min)', 'Order_Size', 'Vehicle_condition']] = scaler.fit_transform(df[['Time_taken(min)', 'Order_Size', 'Vehicle_condition']])
     return df
 
-# Perform clustering
 def perform_clustering(df):
     kmeans = KMeans(n_clusters=3, random_state=42)
     df['Cluster'] = kmeans.fit_predict(df[['Time_taken(min)', 'Order_Size', 'Vehicle_condition']])
     return df
 
-# Perform association analysis
 def association_analysis(df):
     basket = df[['Weather_conditions_Clear', 'Road_traffic_density_High', 'Time_taken(min)']]
     basket = basket.applymap(lambda x: True if x > 0 else False)
@@ -35,17 +32,14 @@ def association_analysis(df):
     assoc_rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
     return assoc_rules
 
-# Detect anomalies
 def detect_anomalies(df):
     z_scores = np.abs(stats.zscore(df['Time_taken(min)']))
     anomalies = df[z_scores > 3]
     return anomalies
 
-# Main function to run the Streamlit app
 def main():
     st.title("Uber Eats Delivery Analysis App")
     st.sidebar.header("Options")
-    
     df = load_data()
     df = preprocess_data(df)
     df = perform_clustering(df)
