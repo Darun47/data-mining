@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from mlxtend.frequent_patterns import apriori, association_rules
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from scipy import stats
 
 # Load the dataset
@@ -21,7 +21,10 @@ def load_data():
 # Data Preprocessing
 def preprocess_data(df):
     df = df.dropna()
-    df = pd.get_dummies(df, drop_first=True)
+    categorical_cols = ["Weather_conditions", "Road_traffic_density", "Type_of_order", "Type_of_vehicle"]
+    for col in categorical_cols:
+        df[col] = LabelEncoder().fit_transform(df[col])
+    
     scaler = MinMaxScaler()
     numeric_cols = ['Time_taken(min)', 'Order_Size', 'Vehicle_condition']
     df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
@@ -36,7 +39,7 @@ def perform_clustering(df):
 # Association Rule Mining
 def association_analysis(df):
     try:
-        basket = df[['Weather_conditions_Clear', 'Road_traffic_density_High', 'Time_taken(min)']]
+        basket = df[['Weather_conditions', 'Road_traffic_density', 'Type_of_order']]
         basket = basket.applymap(lambda x: True if x > 0 else False)
         frequent_itemsets = apriori(basket, min_support=0.1, use_colnames=True)
         assoc_rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
