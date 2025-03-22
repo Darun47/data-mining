@@ -21,13 +21,22 @@ def load_data():
 # Data Preprocessing
 def preprocess_data(df):
     df = df.dropna()
-    categorical_cols = ["Weather_conditions", "Road_traffic_density", "Type_of_order", "Type_of_vehicle"]
-    for col in categorical_cols:
+    
+    # Ensure all expected columns exist
+    expected_cols = ["Weather_conditions", "Road_traffic_density", "Type_of_order", "Type_of_vehicle"]
+    available_cols = [col for col in expected_cols if col in df.columns]
+    
+    # Encode only available categorical columns
+    for col in available_cols:
         df[col] = LabelEncoder().fit_transform(df[col])
+
+    # Normalize numerical columns safely
+    numeric_cols = ['Time_taken(min)', 'Order_Size', 'Vehicle_condition']
+    available_numeric_cols = [col for col in numeric_cols if col in df.columns]
     
     scaler = MinMaxScaler()
-    numeric_cols = ['Time_taken(min)', 'Order_Size', 'Vehicle_condition']
-    df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
+    df[available_numeric_cols] = scaler.fit_transform(df[available_numeric_cols])
+
     return df
 
 # Clustering using K-Means
