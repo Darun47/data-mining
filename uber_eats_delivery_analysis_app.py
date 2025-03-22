@@ -1,111 +1,77 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
-from mlxtend.frequent_patterns import apriori, association_rules
-from sklearn.preprocessing import MinMaxScaler, LabelEncoder
-from scipy import stats
 
-# Load the dataset
-@st.cache_data
-def load_data():
-    try:
-        df = pd.read_csv("uber-eats-deliveries.csv")
-        return df
-    except Exception as e:
-        st.error(f"Error loading dataset: {e}")
-        return None
+# Configure the app layout
+st.set_page_config(page_title="Uber Eats Delivery Analysis", layout="wide")
 
-# Data Preprocessing
-def preprocess_data(df):
-    df = df.dropna()
+# Sidebar Navigation
+st.sidebar.title("📌 Navigation")
+page = st.sidebar.radio("Go to:", ["Home", "Data Overview", "Visualizations", "Clustering Analysis"])
 
-    # Ensure all expected categorical columns exist
-    expected_cols = ["Weather_conditions", "Road_traffic_density", "Type_of_order", "Type_of_vehicle"]
-    available_cols = [col for col in expected_cols if col in df.columns]
+# Upload dataset
+uploaded_file = st.sidebar.file_uploader("📂 Upload Uber Eats Dataset", type=["csv"])
+
+if uploaded_file:
+    # Load the dataset
+    df = pd.read_csv(uploaded_file)
+
+    # Convert numeric columns
+    df["Delivery_person_Age"] = pd.to_numeric(df["Delivery_person_Age"], errors="coerce")
+    df["Delivery_person_Ratings"] = pd.to_numeric(df["Delivery_person_Ratings"], errors="coerce")
+
+    # Remove "(min)" from Time_taken(min) and convert to integer
+    df["Time_taken(min)"] = df["Time_taken(min)"].str.extract("(\\d+)").astype(int)
+
+    # Fix Weatherconditions (remove "conditions ")
+    df["Weatherconditions"] = df["Weatherconditions"].str.replace("conditions ", "", regex=True)
+
+    # Convert time columns to datetime format
+    df["Time_Orderd"] = pd.to_datetime(df["Time_Orderd"], errors="coerce")
+    df["Time_Order_picked"] = pd.to_datetime(df["Time_Order_picked"], errors="coerce")
+
+    st.sidebar.success("✅ Data Loaded Successfully!")
+
+    if page == "Home":
+        st.title("🚀 Uber Eats Delivery Analysis App")
+        st.write("This interactive dashboard helps analyze Uber Eats delivery patterns, customer satisfaction, and efficiency.")
     
-    # Encode only available categorical columns
-    for col in available_cols:
-        df[col] = LabelEncoder().fit_transform(df[col])
-
-    # Ensure numeric columns exist and contain valid values
-    numeric_cols = ['Time_taken(min)', 'Order_Size', 'Vehicle_condition']
-    available_numeric_cols = [col for col in numeric_cols if col in df.columns and df[col].dtype in ['int64', 'float64']]
+    elif page == "Data Overview":
+        st.subheader("🔍 Raw Data Overview")
+        if st.checkbox("Show Raw Data"):
+            st.write(df.head())
+        st.subheader("📌 Summary Statistics")
+        st.write(df.describe())
     
-    if available_numeric_cols:
-        scaler = MinMaxScaler()
-        df[available_numeric_cols] = scaler.fit_transform(df[available_numeric_cols])
+    elif page == "Visualizations":
+        st.subheader("📊 Delivery Time Distribution")
+        fig, ax = plt.subplots()
+        sns.histplot(df["Time_taken(min)"], bins=30, kde=True, color="blue", ax=ax)
+        st.pyplot(fig)
+
+        st.subheader("🚦 Impact of Traffic on Delivery Time")
+        fig, ax = plt.subplots()
+        sns.boxplot(x="Road_traffic_density", y="Time_taken(min)", data=df, ax=ax)
+        st.pyplot(fig)
+
+        st.subheader("🏙 Filter Data by City")
+        selected_city = st.selectbox("Select a city:", df["City"].unique())
+        filtered_df = df[df["City"] == selected_city]
+        st.write(filtered_df.head())
     
-    return df
-
-# Clustering using K-Means
-def perform_clustering(df):
-    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-    df['Cluster'] = kmeans.fit_predict(df[['Time_taken(min)', 'Order_Size', 'Vehicle_condition']])
-    return df
-
-# Association Rule Mining
-def association_analysis(df):
-    try:
-        basket = df[['Weather_conditions', 'Road_traffic_density', 'Type_of_order']]
-        basket = basket.applymap(lambda x: True if x > 0 else False)
-        frequent_itemsets = apriori(basket, min_support=0.1, use_colnames=True)
-        assoc_rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
-        return assoc_rules
-    except Exception as e:
-        st.error(f"Error in association analysis: {e}")
-        return pd.DataFrame()
-
-# Anomaly Detection
-def detect_anomalies(df):
-    try:
-        z_scores = np.abs(stats.zscore(df['Time_taken(min)']))
-        anomalies = df[z_scores > 3]
-        return anomalies
-    except Exception as e:
-        st.error(f"Error in anomaly detection: {e}")
-        return pd.DataFrame()
-
-# Streamlit UI
-def main():
-    st.title("Uber Eats Delivery Analysis App")
-    st.sidebar.header("Options")
-    
-    df = load_data()
-    
-    if df is not None:
-        df = preprocess_data(df)
-        df = perform_clustering(df)
-        assoc_rules = association_analysis(df)
-        anomalies = detect_anomalies(df)
-
-        option = st.sidebar.selectbox("Choose Analysis", 
-                                      ["Data Overview", "Clustering Analysis", "Association Rules", "Anomaly Detection"])
-
-        if option == "Data Overview":
-            st.subheader("Sample Data")
-            st.dataframe(df.head())
-
-            st.subheader("Delivery Time Distribution")
-            fig, ax = plt.subplots()
-            sns.histplot(df['Time_taken(min)'], bins=30, kde=True, ax=ax)
-            st.pyplot(fig)
-
-        elif option == "Clustering Analysis":
-            st.subheader("Clustering Results")
-            fig, ax = plt.subplots()
-            sns.scatterplot(x=df['Order_Size'], y=df['Time_taken(min)'], hue=df['Cluster'], palette='viridis', ax=ax)
-            st.pyplot(fig)
-
-        elif option == "Association Rules":
-            st.subheader("Association Rules Analysis")
-            st.dataframe(assoc_rules)
-
-        elif option == "Anomaly Detection":
-            st.subheader("Anomalies in Delivery Times")
-            st.dataframe(anomalies)
-
-if __name__ == "__main__":
-    main()
+    elif page == "Clustering Analysis":
+        st.subheader("🌀 Clustering Analysis of Delivery Times")
+        features = ["Time_taken(min)", "Delivery_person_Age", "Delivery_person_Ratings"]
+        X = df[features]
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        kmeans = KMeans(n_clusters=3, random_state=42)
+        df["Cluster"] = kmeans.fit_predict(X_scaled)
+        
+        fig, ax = plt.subplots()
+        sns.scatterplot(x="Delivery_person_Age", y="Time_taken(min)", hue=df["Cluster"], palette="viridis", ax=ax)
+        st.pyplot(fig)
+        st.success("✅ Clustering Analysis Completed!")
