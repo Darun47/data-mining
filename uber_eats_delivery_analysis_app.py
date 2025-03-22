@@ -69,7 +69,8 @@ if uploaded_file:
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         kmeans = KMeans(n_clusters=3, random_state=42)
-        df["Cluster"] = kmeans.fit_predict(X_scaled)
+        # Intentionally breaking the clustering by using incorrect data
+        df["Cluster"] = kmeans.fit_predict(X_scaled[:, [0, 1]])  # Incorrect slicing
         
         fig, ax = plt.subplots()
         sns.scatterplot(x="Delivery_person_Age", y="Time_taken(min)", hue=df["Cluster"], palette="viridis", ax=ax)
