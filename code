@@ -1,96 +1,43 @@
-import streamlit as st
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
+elif page == "Clustering Analysis":
+    st.subheader("🌀 Clustering Analysis of Delivery Times")
+    
+    # Define clustering features
+    features = ["Time_taken(min)", "Delivery_person_Age", "Delivery_person_Ratings"]
+    
+    # Ensure columns exist and are numeric
+    available_features = [col for col in features if col in df.columns and pd.api.types.is_numeric_dtype(df[col])]
 
-# Configure the app layout
-st.set_page_config(page_title="Uber Eats Delivery Analysis", layout="wide")
+    # If not enough valid features, show error
+    if len(available_features) < 2:
+        st.error("❌ Not enough numerical columns for clustering. Check the dataset.")
+    else:
+        # Drop missing values for clustering
+        X = df[available_features].dropna()
 
-# Sidebar Navigation
-st.sidebar.title("📌 Navigation")
-page = st.sidebar.radio("Go to:", ["Home", "Data Overview", "Visualizations", "Clustering Analysis"])
+        # Ensure there are enough unique values
+        for col in available_features:
+            unique_values = X[col].nunique()
+            if unique_values < 2:
+                st.warning(f"⚠️ Not enough unique values in '{col}'. Clustering may not work well.")
 
-# Upload dataset
-uploaded_file = st.sidebar.file_uploader("📂 Upload Uber Eats Dataset", type=["csv"])
+        # Standardize the data
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
 
-if uploaded_file:
-    # Load the dataset
-    df = pd.read_csv(uploaded_file)
+        # Debug: Print the shape of data
+        st.write("📊 Data Shape Before Clustering:", X_scaled.shape)
 
-    # Convert numeric columns safely
-    if "Delivery_person_Age" in df.columns:
-        df["Delivery_person_Age"] = pd.to_numeric(df["Delivery_person_Age"], errors="coerce")
-    if "Delivery_person_Ratings" in df.columns:
-        df["Delivery_person_Ratings"] = pd.to_numeric(df["Delivery_person_Ratings"], errors="coerce")
-
-    # Convert 'Time_taken(min)' safely
-    if "Time_taken(min)" in df.columns:
-        df["Time_taken(min)"] = df["Time_taken(min)"].astype(str).str.extract(r"(\\d+)").astype(float)
-        df = df.dropna(subset=["Time_taken(min)"])
-
-    # Fix 'Weatherconditions'
-    if "Weatherconditions" in df.columns:
-        df["Weatherconditions"] = df["Weatherconditions"].astype(str).str.replace("conditions ", "", regex=True)
-
-    # Convert time columns safely
-    for col in ["Time_Orderd", "Time_Order_picked"]:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
-
-    st.sidebar.success("✅ Data Loaded Successfully!")
-
-    # Page Navigation
-    if page == "Home":
-        st.title("🚀 Uber Eats Delivery Analysis App")
-        st.write("This interactive dashboard helps analyze Uber Eats delivery patterns, customer satisfaction, and efficiency.")
-
-    elif page == "Data Overview":
-        st.subheader("🔍 Raw Data Overview")
-        if st.checkbox("Show Raw Data"):
-            st.write(df.head())
-        st.subheader("📌 Summary Statistics")
-        st.write(df.describe())
-
-    elif page == "Visualizations":
-        st.subheader("📊 Delivery Time Distribution")
-        fig, ax = plt.subplots()
-        sns.histplot(df["Time_taken(min)"], bins=30, kde=True, color="blue", ax=ax)
-        st.pyplot(fig)
-
-        st.subheader("🚦 Impact of Traffic on Delivery Time")
-        fig, ax = plt.subplots()
-        sns.boxplot(x="Road_traffic_density", y="Time_taken(min)", data=df, ax=ax)
-        st.pyplot(fig)
-
-        st.subheader("🏙 Filter Data by City")
-        if "City" in df.columns:
-            selected_city = st.selectbox("Select a city:", df["City"].dropna().unique())
-            filtered_df = df[df["City"] == selected_city]
-            st.write(filtered_df.head())
+        # Apply KMeans only if enough data points exist
+        if X_scaled.shape[0] < 3:  # Less than 3 rows cause clustering failure
+            st.error("❌ Not enough data points for clustering. Upload a larger dataset.")
         else:
-            st.warning("City column not found in the dataset.")
-
-    elif page == "Clustering Analysis":
-        st.subheader("🌀 Clustering Analysis of Delivery Times")
-        
-        # Clustering features
-        features = ["Time_taken(min)", "Delivery_person_Age", "Delivery_person_Ratings"]
-        available_features = [col for col in features if col in df.columns]
-        
-        if len(available_features) < 2:
-            st.error("Not enough numerical columns for clustering. Check the dataset.")
-        else:
-            # Drop missing values
-            X = df[available_features].dropna()
-            
-            scaler = StandardScaler()
-            X_scaled = scaler.fit_transform(X)
-
             kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
             df.loc[X.index, "Cluster"] = kmeans.fit_predict(X_scaled)
 
+            # Debug: Print assigned clusters
+            st.write("✅ Cluster Assignments:", df["Cluster"].value_counts())
+
+            # Visualization
             fig, ax = plt.subplots()
             sns.scatterplot(x="Delivery_person_Age", y="Time_taken(min)", hue=df["Cluster"], palette="viridis", ax=ax)
             st.pyplot(fig)
