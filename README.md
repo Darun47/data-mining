@@ -26,9 +26,7 @@ Interactive UI: Allows users to upload datasets, explore patterns, and analyze r
  Installation and Setup
 
 1. Clone the Repository
-
-git clone https://github.com/yourusername/UberEats-Delivery-Analysis.git
-cd UberEats-Delivery-Analysis
+https://github.com/Darun47/uber-eats-delivery-analysis.git
 
 2️. Install Dependencies
 pip install -r requirements.txt
