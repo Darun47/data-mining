@@ -36,7 +36,7 @@ pip install -r requirements.txt
 3️. Run the Streamlit App
 streamlit run uber_eats_delivery_analysis_app.py
 
-steps for running this app 
+Steps for running this app 
 
 Upload the dataset (.csv format) using the sidebar.
 Navigate through different analysis sections:
