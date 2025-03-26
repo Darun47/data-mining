@@ -14,25 +14,6 @@ Association Rule Mining: Finds relationships between factors such as weather, tr
 Anomaly Detection: Identifies outliers in delivery times.
 Interactive UI: Allows users to upload datasets, explore patterns, and analyze results in real-time.
 
- Folder Structure
-
-📂 UberEats-Delivery-Analysis
-│-- 📄 uber_eats_delivery_analysis_app.py  # Main Streamlit app
-│-- 📄 requirements.txt  # List of required dependencies
-│-- 📂 data
-│   └── 📄 uber-eats-deliveries.csv  # Sample dataset
-│-- 📄 README.md  # Project documentation
-
- Installation and Setup
-
-1. Clone the Repository
-https://github.com/Darun47/uber-eats-delivery-analysis.git
-
-2️. Install Dependencies
-pip install -r requirements.txt
-
-3️. Run the Streamlit App
-streamlit run uber_eats_delivery_analysis_app.py
 
 Steps for running this app 
 
