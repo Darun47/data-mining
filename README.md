@@ -1,5 +1,6 @@
-Project Overview
+Project
 
+Overview
 This Uber Eats Delivery Analysis App is a Streamlit-based dashboard designed to analyze delivery patterns, 
 identify factors affecting delivery times, and apply machine learning techniques for
 clustering and association rule mining.
@@ -13,7 +14,7 @@ Association Rule Mining: Finds relationships between factors such as weather, tr
 Anomaly Detection: Identifies outliers in delivery times.
 Interactive UI: Allows users to upload datasets, explore patterns, and analyze results in real-time.
 
-📂 Folder Structure
+ Folder Structure
 
 📂 UberEats-Delivery-Analysis
 │-- 📄 uber_eats_delivery_analysis_app.py  # Main Streamlit app
@@ -22,22 +23,19 @@ Interactive UI: Allows users to upload datasets, explore patterns, and analyze r
 │   └── 📄 uber-eats-deliveries.csv  # Sample dataset
 │-- 📄 README.md  # Project documentation
 
-🛠 Installation & Setup
+ Installation and Setup
 
 1. Clone the Repository
-
 git clone https://github.com/yourusername/UberEats-Delivery-Analysis.git
 cd UberEats-Delivery-Analysis
 
 2️. Install Dependencies
-
 pip install -r requirements.txt
 
 3️. Run the Streamlit App
-
 streamlit run uber_eats_delivery_analysis_app.py
 
- How to Use the App
+steps for running this app 
 
 Upload the dataset (.csv format) using the sidebar.
 Navigate through different analysis sections:
@@ -48,7 +46,7 @@ Association Rules: Identify relationships between features.
 Anomaly Detection: Detect unusual delivery times.
 Interact with the dashboard to explore insights dynamically.
 
-Technologies Used
+Technologies Used During making the App
 
 Python
 Streamlit (for UI & interactivity)
